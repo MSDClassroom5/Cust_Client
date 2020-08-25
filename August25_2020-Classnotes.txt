@@ -1,0 +1,160 @@
+August 25, 2020 Agenda - Doctor Hours for project
+
+1. Project Review
+
+2. Project Team work
+
+3. Week2 Quiz Review 
+
+4. Week2 Quiz
+
+5. Week2 final evaluation
+
+------------------------------------
+Project Team Work
+
+Task 1: Code, Configure, Build, and Run DataApi
+Go to DataApi Project Directory
+a. Add, edit code and configuration, and save all resources
+b. gradle build and create application jar file
+	-- gradle bootjar
+c. run the app using java command
+	-- java -jar ./build/libs/mccdataapi.jar
+
+Task 2: Code, Configure, Build, and Run AuthApi
+Go to AuthApi Project Directory
+a. Add, edit code and configuration, and save all resources
+b. gradle build and create application jar file
+	-- gradle bootjar
+c. run the app using java command
+	-- java -jar ./build/libs/mccauthapi.jar
+
+Task 3: Testing service integration (AuthApi <--> DataApi) and service endpoints
+1. Start postman
+2. Test data api service end points without security token
+	-- GET request
+	-- http://localhost:8080/api/customers
+This should fail. Verify. What is the error message?
+3. Test auth api service end point to get a token to login
+	-- POST request
+	-- http://localhost:8081/auth/token
+	-- payload (body) must be valid name and password value pairs
+		{ "name" : "Bruce", "password" : "pass"}
+4. See the response and copy the JWT token string
+5. Use the JWT token to test data api service end points
+	-- GET request
+	-- http://localhost:8080/api/customers
+	-- Header: Authorization:Bearer, Token:<JWT Token string>
+6. What is the result?
+7. Test other data api end points
+8. Test auth api service end point to register a new customer
+	-- POST request
+	-- http://localhost:8081/auth/register
+	-- payload (body) must be a new customer data
+		{ "name":"fox", "email":"fox@webage.com" "password":"foxy"}
+what is the response? 201 created? OR error?
+9. Test the data api service end points to view the list of customers
+	-- GET request
+	-- http://localhost:8080/api/customers
+10. Run the react app client and test client-service integration
+	-- go to Downloads/project/ReactClients/day8
+	-- unzip project-react-client.zip
+	-- Open a terminal, and cd to project-react-client
+	-- run npm command to install node packages (modules)	
+		- npm install
+	-- run npm command to start development server
+		- npm start
+	-- Open a browser to load react app and test the app
+		- http://localhost:3000
+
+Task 4: Build docker images for the services
+
+project-data-api-dir>docker build --tag dataapi:v1.0 .
+project-auth-api-dir>docker build --tag authapi:v1.0 .
+
+docker images
+
+Task 5. Create a docker network, run docker containers and add containers to network
+
+1. Create a docker network
+
+docker network create mccnetwork
+
+2. Start the data api container
+
+docker run -d --name api -p 8080:8080 dataapi:v1.0
+
+3. Add the data api container to your docker network
+
+docker network connect mccnetwork api
+
+4. Inspect the docker network and find the ip address of data api
+
+docker network inspect mccnetwork
+
+You will get some message like
+
+"Containers": {
+            "6dd5dffbe8275fbd01d26cc4247fc17263759d27cce66c58a4f4cd648ae29346": {
+                "Name": "api",
+                "EndpointID": "781744572b8df6e58d0174bce7da8a68d96f60448b30496f50b3c1b6f7528a0d",
+                "MacAddress": "02:42:ac:13:00:02",
+                "IPv4Address": "172.19.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+
+
+See the ip address of the container api. In this case IPv4Address": 172.19.0.2
+
+use the IP address of api container as an env variable value to auth service docker container
+
+5. How to configure auth container to use an env variable and get the value in code?
+
+5.a Configuration
+auth api Dockerfile Instructions - add an ARG and ENV variable
+
+ARG targethost=localhost:8080
+ENV API_HOST=$targethost
+
+5.b Code
+
+in the auth service code, read the variable value with a code
+
+String apiHost = System.getenv("API_HOST");
+String apiURL = "http://" + apiHost + "/api/customers";
+
+6. Rebuild the auth service container image
+
+project-auth-api-dir>docker build --tag authapi:v1.1 .
+
+7. Start the auth service container, pass the env variable name and value pair
+
+project-auth-api-dir>docker run -it --name=auth -p 8081:8081 --env API_HOST=172.19.0.2:8080 authapi:v1.0
+
+8. Add the auth service container to docker network
+
+docker network connect mccnetwork auth
+
+9. Inspect the docker network and find the ip addresses of data api and auth service
+
+you will see two containers with ip addresses
+
+"Containers": {
+            "6dd5dffbe8275fbd01d26cc4247fc17263759d27cce66c58a4f4cd648ae29346": {
+                "Name": "api",
+                "EndpointID": "781744572b8df6e58d0174bce7da8a68d96f60448b30496f50b3c1b6f7528a0d",
+                "MacAddress": "02:42:ac:13:00:02",
+                "IPv4Address": "172.19.0.2/16",
+                "IPv6Address": ""
+            },
+            "dc30fed0722185d432ea138d4f6b264b6dea2303286e0210d0540d1a59c6696d": {
+                "Name": "auth",
+                "EndpointID": "a7c13bdc55b0d3a670f8b2af1dc42de099915081ba8a07294001f141e36751e1",
+                "MacAddress": "02:42:ac:13:00:03",
+                "IPv4Address": "172.19.0.3/16",
+                "IPv6Address": ""
+            }
+
+Task 6. Test service end points
+	

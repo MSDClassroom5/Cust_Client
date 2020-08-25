@@ -1,0 +1,215 @@
+Week2 Project Review
+----------------------------
+Java Project = Your java app code + JRE Library
+
+Java Project with application framework
+-- Your app code
+	- JRE Library
+	- Framework Library (e.g Spring, Hibernate, JSF, Struts, etc)
+	- Framework Configuration files (beans.xml, faces-config.xml, hibernate-cfg.xml, etc)
+
+Java Spring Project
+-- Your app code + configuration
+	- JRE Library
+	- Spring Framework Core Container
+	(core, beans, test, EL) 
+	(EL - Expression Language)
+
+Java Spring Web Project --> may be deployed on any java web container
+-- Your app code + configuration
+	- JRE Library
+	- Spring Framework Core Container
+	(core, beans, test, EL)
+	- Spring Web, Spring MVC
+
+Java Spring Web and Data Access Project --> may be deployed on any java web container
+-- Your app code + configuration
+	- JRE Library
+	- Spring Framework Core Container
+	(core, beans, test, EL)
+	- Spring Web, Spring MVC	
+	- Spring JDBC and/or Spring ORM/JPA implementation on Hibernate
+
+Java Spring Boot Project - an app bundle with lib and web container runtime
+-- Your app code + configuration
+	- JRE Library
+	- Spring Framework Core Container
+	(core, beans, test, EL)
+	- Spring Web, Spring MVC
+	- Spring Boot Libraries
+	- web container runtimes (tomcat | undertow | jetty)
+
+
+when you start your spring boot app
+
+you ---> launch a JVM
+	--> JVM launch Spring Boot application
+		--> Boot Application scans top level package and subpackages
+			--> Identify the beans and instantiate them, wire them
+			--> starts tomcat container instance 
+				--> instantiate a Spring Dispatcher Servlet instance
+					--> initialize web app context and beans				
+	--> Tomcat listening at a host on a port (localhost, 8080)
+						
+				
+
+My Project app -- Microservice app
+
+Microservice app 
+-- a standalone spring boot app with embedded web container listening at host:port
+	- e.g -- dataApi listening at localhost:8080
+
+-- App 
+   -- SpringBootApplication class with public static void main(String [] args)
+	- Domain data types (e.g Customer, Event, Registration - POJO with get/set)
+	- Service data types (e.g CustomerService, EventService)
+	- Repository data types (e.g CustomerRepository)
+	- Controller data types (e.g CustomerController)
+
+- resources
+	- application.properties
+	- schema.sql
+	- data.sql
+
+How to build my app with its dependencies?
+- Maven build  
+	-- write pom.xml, maven build, and test
+- Gradle build  
+	-- write build.gradle, gradle build and test
+	gradle build
+	gradle bootjar
+	gradle bootrun
+
+How to containerize my microservice app?
+- use Docker
+
+create a docker image for my app 
+- create a Dockerfile in your project directory
+- docker build using Dockerfile
+create a container from the image
+- docker run using the docker image
+
+
+Dockerfile instructions
+-----------------------------------------
+FROM: The keyword FROM, tells Docker to use a given image with its tag as build-base. If this image is not in the local library, an online-search on DockerHub, or on any other configured remote-registry, is performed
+
+RUN: With the RUN command, we're executing a shell command-line within the target system.
+ 
+COPY: The last command tells Docker to COPY a few files from the local file-system, specifically a subfolder to the build directory, into the image in a given path
+
+ENV: This command lets us define some environment variables, which will be respected by the application running in the container
+
+ENTRYPOINT/CMD: This will be the executable to start when the container is booting. We must define them as JSON-Array, because we will use an ENTRYPOINT in combination with a CMD for some application arguments
+
+VOLUME: Because our container will be running in an isolated environment, with no direct network access, we have to define a mountpoint-placeholder for our configuration repository
+
+EXPOSE: Here we are telling Docker, on which port our application is listing. This port will be published to the host, when the container is booting
+-----------------------------------------------
+How to build docker images?
+
+project-data-api-dir>docker build --tag dataapi:v1.0 .
+project-auth-api-dir>docker build --tag authapi:v1.0 .
+
+How to view the list of docker images?
+
+docker images
+
+How to run docker container instances?
+
+project-data-api-dir>docker run -it --name api -p 8080:8080 dataapi:v1.0
+project-auth-api-dir>docker run -it --name=auth -p 8081:8081 authapi:v1.0
+
+OR
+
+project-data-api-dir>docker run -d --name api -p 8080:8080 dataapi:v1.0
+project-auth-api-dir>docker run -d --name=auth -p 8081:8081 authapi:v1.0
+
+How to make one docker containerized app to communicate to another docker containerized app running on the same host?
+
+1. Create a docker network
+
+docker network create mccnetwork
+
+2. Start the data api container
+
+docker run -d --name api -p 8080:8080 dataapi:v1.0
+
+3. Add the data api container to your docker network
+
+docker network connect mccnetwork api
+
+4. Inspect the docker network and find the ip address of data api
+
+docker network inspect mccnetwork
+
+You will get some message like
+
+"Containers": {
+            "6dd5dffbe8275fbd01d26cc4247fc17263759d27cce66c58a4f4cd648ae29346": {
+                "Name": "api",
+                "EndpointID": "781744572b8df6e58d0174bce7da8a68d96f60448b30496f50b3c1b6f7528a0d",
+                "MacAddress": "02:42:ac:13:00:02",
+                "IPv4Address": "172.19.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+
+
+See the ip address of the container api. In this case IPv4Address": 172.19.0.2/16
+
+use the IP address of api container as an env variable value to auth service docker container
+
+5. How to configure auth container to use an env variable and get the value in code?
+
+5.a Configuration
+auth api Dockerfile Instructions - add an ARG and ENV variable
+
+ARG targethost=localhost:8080
+ENV API_HOST=$targethost
+
+5.b Code
+
+in the auth service code, read the variable value with a code
+
+String apiHost = System.getenv("API_HOST");
+String apiURL = "http://" + apiHost + "/api/customers";
+
+6. Rebuild the auth service container image
+
+project-auth-api-dir>docker build --tag authapi:v1.1 .
+
+7. Start the auth service container, pass the env variable name and value pair
+
+project-auth-api-dir>docker run -it --name=auth -p 8081:8081 --env API_HOST=172.19.0.2:8080 authapi:v1.0
+
+8. Add the auth service container to docker network
+
+docker network connect mccnetwork auth
+
+9. Inspect the docker network and find the ip addresses of data api and auth service
+
+you will see two containers with ip addresses
+
+"Containers": {
+            "6dd5dffbe8275fbd01d26cc4247fc17263759d27cce66c58a4f4cd648ae29346": {
+                "Name": "api",
+                "EndpointID": "781744572b8df6e58d0174bce7da8a68d96f60448b30496f50b3c1b6f7528a0d",
+                "MacAddress": "02:42:ac:13:00:02",
+                "IPv4Address": "172.19.0.2/16",
+                "IPv6Address": ""
+            },
+            "dc30fed0722185d432ea138d4f6b264b6dea2303286e0210d0540d1a59c6696d": {
+                "Name": "auth",
+                "EndpointID": "a7c13bdc55b0d3a670f8b2af1dc42de099915081ba8a07294001f141e36751e1",
+                "MacAddress": "02:42:ac:13:00:03",
+                "IPv4Address": "172.19.0.3/16",
+                "IPv6Address": ""
+            }
+
+
+
+
+
+
+
