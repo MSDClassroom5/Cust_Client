@@ -1,0 +1,129 @@
+
+Run the data api container, add it to docker network.
+Run the auth api container, add it to docker network.
+
+See the class notes of August 25_2020 session.
+
+api container address: 172.18.0.2:8080
+auth container address: 172.18.0.3:8081
+
+How to integrate front end client with auth docker container and api docker container?
+
+1. Go to client project. You have to modify two files in the client project,
+to forward the requests to ip addresses of auth and api in docker network.
+
+clientprojectdir>/src/setupproxy.js
+clientprojectdir> default.conf
+
+
+2. Edit /src/setuproxy.js file. 
+the default host for both /api and /account has been configured as localhost
+Replace the localhost with ip addresses of api and auth container.
+
+/* 
+    app.use(proxy('/api', { target: 'http://localhost:8080/' }));
+    app.use(proxy('/account', { target: 'http://localhost:8081/' }));*/
+
+    app.use(proxy('/api', { target: 'http://172.18.0.2:8080/' }));
+    app.use(proxy('/account', { target: 'http://172.18.0.3:8081/' })); 
+
+Save the file.
+
+3. Edit the default.conf file.
+Modify the ip addresses of proxy location of /api and /account 
+
+# OPTIONAL: For an API server you want to proxy
+  location /api {
+   # proxy_pass http://10.111.48.90:8080;
+    proxy_pass http://172.18.0.2:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection ‘upgrade’;
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+  }
+  location /account {
+   # proxy_pass http:///10.104.111.92:8081;
+    proxy_pass http://172.18.0.3:8081;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection ‘upgrade’;
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+  }  
+
+4. Open a terminal, cd to client project directory
+
+5. Open the Dockerfile and review, you do not have to do any changes here.
+
+6. Build a docker image for the client
+osboxes@osboxes:~/Desktop/demomccproject/project-react-client$ docker build --tag reactclient:v1.0 .
+
+7. Run a docker container from the reactclient:v1.0 image
+
+osboxes@osboxes:~/Desktop/demomccproject/project-react-client$ docker run --name react -it -p 3000:80 reactclient:v1.0 
+
+this will start the container.
+
+8. Open another terminal. Add the react client container to existing docker network, that is mccnetwork
+
+sboxes@osboxes:~$ docker network connect mccnetwork react
+
+9. Inspect the network. 
+osboxes@osboxes:~$ docker network inspect mccnetwork
+
+You will see three ip addresses, one for app, one for auth and one for react. 
+
+"Containers": {
+            "0ebfc7973872c7e1e087f1898c71cbf0fbe806c249ff11d977dfd0b51a346dcb": {
+                "Name": "react",
+                "EndpointID": "21decfd7e90806653ec04ef6261a461cd1d88170fb618253391ba2d599bccc08",
+                "MacAddress": "02:42:ac:12:00:04",
+                "IPv4Address": "172.18.0.4/16",
+                "IPv6Address": ""
+            },
+            "24ea8471b8ef81f7fd5d921f8734c13354768e05eab2255a72fe5dcec4d9d3f0": {
+                "Name": "api",
+                "EndpointID": "fc5eb89b905760f576c38f489cfaf25abfc29e9d678cc7c7a057d1429a4821e1",
+                "MacAddress": "02:42:ac:12:00:02",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "643be31558b86e792c05e5573e528bcb77c3bb87a69745dc7d4728bf6bbf4b88": {
+                "Name": "auth",
+                "EndpointID": "b4503ac9fab5db39a1bcdd9ec703b2476c3eaea33bf836470fbb3953726cff26",
+                "MacAddress": "02:42:ac:12:00:03",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            }
+        }
+
+10. Run a command docker ps -a
+
+osboxes@osboxes:~$ docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                              NAMES
+0ebfc7973872        reactclient:v1.0    "nginx -g 'daemon of…"   28 minutes ago      Up 28 minutes       0.0.0.0:3000->80/tcp               react
+643be31558b8        authapi:v1.0        "java -jar ./app/lib…"   44 minutes ago      Up 44 minutes       8080/tcp, 0.0.0.0:8081->8081/tcp   auth
+24ea8471b8ef        dataapi:v1.0        "java -jar ./app/lib…"   46 minutes ago      Up 46 minutes       0.0.0.0:8080->8080/tcp             api
+
+Notice the PORTS column
+
+reactclient 	0.0.0.0:3000
+authapi		0.0.0.0:8081
+dataapi		0.0.0.0:8080
+
+use these addresses in postman, and in browser.
+
+11. Open a browser, go to react app using the new tcp address
+http://0.0.0.0:3000
+
+test login and register requests.
+
+12. Open postman, Test the end points using the new tcp addresses
+http://0.0.0.0:8081/account/token
+http://0.0.0.0:8081/account/register
+http://0.0.0.0:8080/api/customers
+
+
+
+
