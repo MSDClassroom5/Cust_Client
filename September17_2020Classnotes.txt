@@ -1,0 +1,142 @@
+Good Evening!
+How are you doing?
+
+September 17, 2020 Agenda
+
+1. Review
+2. Lecture: WA2894 Chapter 2 Microservices Logging - Tracing tools
+3. Lab: WA2894 Lab 4 Using Jaeger for Tracing  -- Project VM
+4. Lecture: WA2894 Chapter 3 Introduction to Continuous Integration, Continuous Delivery and Jenkins CI
+5. Lab: WA2894 Lab 5 Configure Tools in Jenkins - Lab VM
+
+Review:
+
+Procedural Programming Vs Object Oriented Programming Overview
+
+Procedural Programming -- C, Fortran, javascript ES5 
+-- functions 
+	-- primary construct
+-- variables 
+	-- global
+	-- local
+-- function and data are loosely coupled
+-- reuse
+
+Object Oriented Programming  -- java, C#, C++, Typescript, ES6 javascript
+-- Object Based Programming 
++ supports Encapsulation, Abstraction, Inheritance and Polymorphism
+-- Object Based Programming 
+	- use objects
+-- Object is an entity with built-in functions and data members, in memory
+	-- functions and variables are bundled together as a single entity
+-- Need an object data type code (template) to create objects
+-- Object data type ?
+	-- java uses the construct class to define an object data type
+-- class is template with object type's data and functions are defined/implemented
+-- in java, an object is an instance of a class and it lives in app memory
+-- Encapsulation
+	-- access control -- use keywords to control access to data and functional members
+	-- in java, we use public, private, protected keywords
+	-- if you don't use any keyword, the data and/or function is 
+	encapsulated with default access
+-- Abstraction
+	-- define object data type with abstract methods
+		- methods declaration only, no implementation code
+	-- 100 % abstract data type -- in java we define interface 
+	-- partial abstract data type 
+		- some abstract methods
+		- some fully implemented methodd
+		- in java we use abstract class type
+-- Inheritance
+	-- sharing common characteristics among the object data types
+	-- define an object data type with common features that apply to many different types
+		-- define any child data type, that inherits this data type
+			-- add methods, override parent data type methods
+	-- In java we use the keyword extends
+	-- In java, parent data type is referred as super type, and child data type is referred as sub type
+-- Polymorphism
+	-- an object data type variable exhibits polymorphic behavior
+	-- different functional response (behavior) at different time during runtime
+	-- result of inheritance, and overriding, and 
+		dynamic binding of object reference to object in memory
+
+
+Tracing concepts:
+
+you --> login --> retrieve your reservation --> checkin ---> Boardingpass
+
+You --> UI --> loginService --> reservationService --> checkinService --> boardingPassService
+
+How to trace the end to end request and response?
+
+you --> login --> select items --> checkout ---> pay for your items --> get receipt 
+
+You -- UI --> loginService --> cartService --> checkoutService --> paymentService --> receiptService
+
+How to trace the end to end request and response?
+
+------------------------------------------
+
+Open Tracing
+
+https://opentracing.io/
+
+https://opentracing.io/guides/java/
+
+Jaeger
+
+https://www.jaegertracing.io/
+
+https://www.jaegertracing.io/download/
+
+https://www.jaegertracing.io/docs/1.19/getting-started/
+
+---------------------------------------------------------------------
+
+CI, CD, CD
+
+CI - Contionous Integration
+CD - Continuous Delivery
+CD - Continuous Deployment
+
+CI -- build --> test --> integrate 
+
+Continuous Delivery 
+-- build --> test --> deliver to staging --> application acceptance tests 
+	--- Can we deploy to production? 
+	Manual approval step 
+	if approved, 
+	deploy to production --> post deploy tasks
+
+Continuous Deployment (fully automated)
+-- build --> test --> deliver to staging --> application acceptance tests --> deploy to production --> post deploy tasks
+
+
+Apache JMeter
+
+https://jmeter.apache.org/
+
+Jenkins
+
+https://www.jenkins.io/
+
+Your Project Tasks:
+
+-- get code from git repository
+-- run gradle build
+-- launch app
+-- junit tests --> report junit test results
+-- deliver to staging 
+-- application acceptance tests 
+-- containerize the apps - docker images
+-- run docker container 
+-- test docker containers
+-- all ok, then ?
+-- create kubernetes deployment, services
+-- deploy to kubernetes cluster
+
+How to use Jenkins to automate these tasks?
+
+Think ! Think ! and Think !
+
+have a great weekend.
