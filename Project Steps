@@ -1,0 +1,102 @@
+************************** Logging Notes *******************
+# start minikube
+minikube start --vm-driver="none"
+
+minikube status
+
+kubectl get pods
+
+cd  /home/osboxes/Desktop/MSD/EventRegistration/Eventregistration
+docker build -t project-data:v1.0 .
+kubectl create deployment project-data --image=project-data:v1.0
+
+# Verify Data API projects are deployed
+root@osboxes:~# kubectl get deployments
+NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+project-data   1/1     1            1           8s
+
+#View pod list
+root@osboxes:~# kubectl get pods
+NAME                            READY   STATUS    RESTARTS   AGE
+project-data-6df5d66dfb-r896d   1/1     Running   0          24s
+
+# Build Docker image for project-auth
+cd  /home/osboxes/Desktop/MSD/EventRegistration/Authentication
+docker build -t project-auth:v1.0 .
+
+# Expose Data API service
+kubectl expose deployment project-data --type=LoadBalancer --port=8080
+
+root@osboxes:~# kubectl get services
+NAME           TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kubernetes     ClusterIP      10.96.0.1       <none>        443/TCP          10m
+project-data   LoadBalancer   10.103.54.182   <pending>     8080:31420/TCP   7s
+
+# Deploy Authentication API image to Kubernetes cluster
+kubectl create deployment project-auth --image=project-auth:v1.0
+############ modify API_HOST with correct IP address here ################
+kubectl set env deployment/project-auth API_HOST=10.103.213.184:8080
+
+kubectl expose deployment project-auth --type=LoadBalancer --port=8081
+
+##########
+########## Modify the IP addresses of the services in the react client
+##########
+
+cd  /home/osboxes/Desktop/MSD/EventRegistration/project-react-client
+#Edit default.conf
+gedit default.conf
+Locate location/account and change proxy pass to http://<PROJECT_AUTH_IP>:8081
+Locate location/api and change proxy pass to http://<PROJECT_DATA_IP>:8080
+
+#Edit src/setupProxy.js
+gedit src/setupProxy.js
+Locate /account and change target to http://<PROJECT_AUTH_IP>:8081
+Locate /api, change target to http://<PROJECT_DATA_IP>:8080
+
+# Build the docker image of the react client
+cd /Users/rajendercheekatamarla/Documents/MSD/Project/project-react-client
+cd  /home/osboxes/Desktop/MSD/EventRegistration/project-react-client
+docker build -t project-react:v1.0 .
+
+#Deploy React client application to Kubernetes cluster.
+kubectl create deployment project-react --image=project-react:v1.0
+
+root@osboxes:~# kubectl get deployments
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+project-auth    1/1     1            1           13m
+project-data    1/1     1            1           21m
+project-react   1/1     1            1           4s
+root@osboxes:~# kubectl get pods
+NAME                             READY   STATUS    RESTARTS   AGE
+project-auth-64b8576ccd-7r8jw    1/1     Running   0          12m
+project-data-6df5d66dfb-r896d    1/1     Running   0          21m
+project-react-7f6b4dbdb9-2k8rz   1/1     Running   0          9s
+
+# Expose the React client application service so you can access it from outside the Kubernetes cluster.
+kubectl expose deployment project-react --type=LoadBalancer --port=80
+
+#Verify the React client application is exposed and make a note of the IP address.
+root@osboxes:~# kubectl get services
+
+# Open the web browser and enter the following URL
+http://<REACT_APP_IP>
+http://10.97.215.55
+
+
+# Execute the application Login etc..
+# Examine the log message in the log file
+kubectl logs project-auth-64f8c97755-hdj8h
+kubectl logs project-data-64f8c97755-hdj8x
+
+####### kibana logging ############
+# kubectl create namespace logging
+kubectl create -f kubernetes/elastic.yaml
+kubectl create -f kubernetes/kibana.yaml
+kubectl create -f kubernetes/fluentd-rbac.yaml
+kubectl create -f kubernetes/fluentd-daemonset.yaml
+
+kubectl get pods
+
+#### Testing elastic search ##########
+kubectl logs <fluentd-pod_name> -n kube-system | grep "Connection opened"
