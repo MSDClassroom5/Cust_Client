@@ -1,0 +1,92 @@
+************************** Deployment Notes *******************
+# start minikube
+minikube start --vm-driver="none"
+
+minikube status
+
+# Build and deploy data api
+cd  ./Eventregistration
+docker build -t project-data:v1.0 .
+kubectl create deployment project-data --image=project-data:v1.0
+
+# Verify Data API deployment created
+kubectl get deployments
+
+# Expose Data API service
+kubectl expose deployment project-data --type=LoadBalancer --port=8080
+
+#View pod list
+kubectl get pods
+
+# Build and deploy auth api
+cd  ./Authentication
+docker build -t project-auth:v1.0 .
+kubectl create deployment project-auth --image=project-auth:v1.0
+
+# Verify Auth API deployment created
+kubectl get deployments
+
+# Expose Auth API service
+kubectl expose deployment project-auth --type=LoadBalancer --port=8081
+
+############ Set ENV variable API_HOST with correct IP address ################
+kubectl set env deployment/project-auth API_HOST=project-data:8080
+
+
+##########
+########## Modify the IP addresses of the services in the react client to use the HOSTNAME of the Data and Auth APIs
+##########
+
+cd  ./project-react-client
+#Edit default.conf
+Locate location/account and change proxy pass to http://project-auth:8081
+Locate location/api and change proxy pass to http://project-data:8080
+
+#Edit src/setupProxy.js
+Locate /account and change target to http://project-auth:8081
+Locate /api, change target to http://project-data:8080
+
+# Build and deploy react client
+cd  ./project-react-client
+docker build -t project-react:v1.0 .
+kubectl create deployment project-react --image=project-react:v1.0
+
+# Verify React Client deployment created
+kubectl get deployments
+
+# Expose the React client application service so you can access it from outside the Kubernetes cluster.
+kubectl expose deployment project-react --type=LoadBalancer --port=80
+
+# Verify deployments are created and pods are running
+kubectl get pods
+kubectl get deployments
+
+# Scale the services with 2 replicas for each
+kubectl scale --replicas=2 deployment/project-data
+kubectl scale --replicas=2 deployment/project-auth
+kubectl scale --replicas=2 deployment/project-react
+
+#Verify the React client application is exposed and make a note of the IP address.
+kubectl get services
+
+# Open the web browser and enter the following URL
+http://<REACT_APP_IP>
+
+# Execute the application Login etc..
+# Examine the log message in the log file
+kubectl logs <project-auth NAME>
+kubectl logs <project-data NAME>
+
+####### kibana logging ############
+# edit fluentd namespace to be default
+kubectl create -f kubernetes/elastic.yaml
+kubectl create -f kubernetes/kibana.yaml
+kubectl create -f kubernetes/fluentd-rbac.yaml
+kubectl create -f kubernetes/fluentd-daemonset.yaml
+
+# Verify logging deployments and pods are created/running
+kubectl get deployment
+kubectl get pods
+
+#### Testing elastic search ##########
+kubectl logs <fluentd-pod_name> | grep "Connection opened"
