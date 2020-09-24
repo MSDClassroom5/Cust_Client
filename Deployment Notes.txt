@@ -91,6 +91,17 @@ kubectl get pods
 #### Testing elastic search ##########
 kubectl logs <fluentd-pod_name> | grep "Connection opened"
 
+#### Run Kibana to check the log message
+#########################################################################
+minikube ip: kibana port 
+create index pattern logstash*
+select @timestamp
+add filter container_image is one of "project-"
+run client application and do some action (add/delete/update for custome/event/registeration)
+check the log message for in different pods (project-dataXXXX)
+
+
+
 #######################  Add Spring Actuator Prometheus #################
 #########################################################################
 docker stop prometheus
