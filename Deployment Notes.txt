@@ -90,3 +90,31 @@ kubectl get pods
 
 #### Testing elastic search ##########
 kubectl logs <fluentd-pod_name> | grep "Connection opened"
+
+#######################  Add Spring Actuator Prometheus #################
+#########################################################################
+docker stop prometheus
+docker rm prometheus
+# create prometheus contianer
+# prometheus.yml contain the IP address???
+
+sudo docker run -d --name=prometheus -p 9090:9090 -v prometheus.yml:/etc/prometheus.yml prom/prometheus
+
+kubectl create deployment prometheus --image=prom/prometheus:latest
+kubectl expose deployment prometheus --type=LoadBalancer --port=9090
+#kubectl create configmap prometheus-example-cm --from-file prometheus.yml
+
+# make sure it is running
+sudo docker ps -a | grep "prometheus"
+
+
+process_uptime_seconds
+http_server_requests_seconds_max{method="GET",status="200",uri="/api/customers"}
+
+
+########### Jaeger Tracking ###############
+sudo docker run -d --name Jaeger --rm -it --network=host jaegertracing/all-in-one:1.12.0
+kubectl create deployment jaeger --image=jaegertracing/all-in-one:1.12.0
+kubectl expose deployment jaeger --type=LoadBalancer --port=16686
+
+
