@@ -96,7 +96,7 @@ kubectl logs <fluentd-pod_name> | grep "Connection opened"
 minikube ip: kibana port 
 create index pattern logstash*
 select @timestamp
-add filter container_image is one of "project-"
+add filter kubernetes_container_image is one of "project-"
 run client application and do some action (add/delete/update for custome/event/registeration)
 check the log message for in different pods (project-dataXXXX)
 
@@ -104,12 +104,26 @@ check the log message for in different pods (project-dataXXXX)
 
 #######################  Add Spring Actuator Prometheus #################
 #########################################################################
+
 docker stop prometheus
 docker rm prometheus
 # create prometheus contianer
 # prometheus.yml contain the IP address???
 
-sudo docker run -d --name=prometheus -p 9090:9090 -v prometheus.yml:/etc/prometheus.yml prom/prometheus
+  - job_name: 'metrics-tracing-authapi'
+    metrics_path: '/account/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs: 
+    - targets: ['localhost:8081']
+################################################
+# run latest prometheus in localhost
+################################################
+
+cd /home/osboxes/Downloads/prometheus-2.21.0.linux-amd64
+./prometheus
+
+#sudo docker run -d --name=prometheus -p 9090:9090 -v prometheus.yml:/etc/prometheus.yml prom/prometheus
+
 
 kubectl create deployment prometheus --image=prom/prometheus:latest
 kubectl expose deployment prometheus --type=LoadBalancer --port=9090
@@ -118,10 +132,10 @@ kubectl expose deployment prometheus --type=LoadBalancer --port=9090
 # make sure it is running
 sudo docker ps -a | grep "prometheus"
 
-
+http_server_requests_seconds_count{exception="None",method="GET",outcome="SUCCESS",status="200",uri="/actuator/prometheus",}
+http_server_requests_seconds_count{exception="None",method="POST",outcome="SUCCESS",status="200",uri="/token",}
 process_uptime_seconds
-http_server_requests_seconds_max{method="GET",status="200",uri="/api/customers"}
-
+process_uptime_seconds
 
 ########### Jaeger Tracking ###############
 sudo docker run -d --name Jaeger --rm -it --network=host jaegertracing/all-in-one:1.12.0
@@ -140,4 +154,12 @@ docker stop 5627dad26362
 #### it will already create deployment and expose etc.. no need to do anything
 #### remove unused container
 docker rm XXXXXXX
+
+
+######## run jenkins ############
+cd /home/osboxes/Desktop/myjenkins
+java -jar jenkins.war --httpPort=9099
+localhost:9099
+
+
 
