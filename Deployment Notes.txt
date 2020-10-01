@@ -134,6 +134,7 @@ sudo docker ps -a | grep "prometheus"
 
 http_server_requests_seconds_count{exception="None",method="GET",outcome="SUCCESS",status="200",uri="/actuator/prometheus",}
 http_server_requests_seconds_count{exception="None",method="POST",outcome="SUCCESS",status="200",uri="/token",}
+http_server_requests_seconds_count{exception="None",method="POST",outcome="SUCCESS",status="201",uri="/register",}
 process_uptime_seconds
 process_uptime_seconds
 
@@ -155,11 +156,15 @@ docker stop 5627dad26362
 #### remove unused container
 docker rm XXXXXXX
 
+###### remove all unused images and stopped containers ############
+docker system prune -a
 
 ######## run jenkins ############
 cd /home/osboxes/Desktop/myjenkins
 java -jar jenkins.war --httpPort=9099
 localhost:9099
 
+############ minikube service list ##########
+minikube service list
 
 
